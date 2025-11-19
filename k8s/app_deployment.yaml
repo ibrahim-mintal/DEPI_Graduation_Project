@@ -17,7 +17,6 @@ spec:
     spec:
       nodeSelector:
         node-role: app-node
-        topology.ebs.csi.aws.com/zone: us-west-2a
       containers:
         - name: app
           image: ibrahimmintal/shorten-url:latest

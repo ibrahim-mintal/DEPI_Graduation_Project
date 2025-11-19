@@ -17,7 +17,6 @@ spec:
     spec:
       nodeSelector:
         node-role: jenkins-node
-        topology.ebs.csi.aws.com/zone: us-west-2b
       serviceAccountName: jenkins
       securityContext:
         fsGroup: 1000       # ensure permissions on /var/jenkins_home
