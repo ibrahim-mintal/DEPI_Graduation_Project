@@ -30,20 +30,17 @@ metadata:
     some-label: kaniko
 spec:
   containers:
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:latest
-    command:
-    - cat
-    tty: true
-    volumeMounts:
-    - name: kaniko-secret
-      mountPath: /kaniko/.docker
-      readOnly: true
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:latest
+      volumeMounts:
+        - name: kaniko-secret
+          mountPath: /kaniko/.docker
+          readOnly: true
   restartPolicy: Never
   volumes:
-  - name: kaniko-secret
-    secret:
-      secretName: regcred
+    - name: kaniko-secret
+      secret:
+        secretName: regcred
 """
                 }
             }
