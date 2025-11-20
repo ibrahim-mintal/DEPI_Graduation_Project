@@ -8,6 +8,7 @@ resource "aws_eks_cluster" "eks" {
   }
 
   depends_on = [
+    aws_vpc.vpc,
     aws_iam_role_policy_attachment.eks_cluster_AmazonEKSClusterPolicy,
     aws_iam_role_policy_attachment.eks_cluster_AmazonEKSVPCResourceController,
   ]

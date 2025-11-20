@@ -17,7 +17,7 @@ spec:
     spec:
       nodeSelector:
         node-role: jenkins-node
-      serviceAccountName: jenkins
+      serviceAccountName: jenkins-sa
       securityContext:
         fsGroup: 1000       # ensure permissions on /var/jenkins_home
         runAsUser: 1000

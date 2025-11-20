@@ -157,6 +157,7 @@ Before setting up the project, ensure you have the following:
    ```bash
    kubectl get pods -n app
    kubectl get pods -n jenkins
+   kubectl get services -n jenkins
    kubectl get services -n app
    ```
 

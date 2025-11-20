@@ -20,7 +20,7 @@ provider "aws" {
 
 provider "kubernetes" {
   config_path = "~/.kube/config"       # Adjust if needed
-  config_context = var.cluster_name
+ 
 }
 
 # Import all other .tf files implicitly when running terraform

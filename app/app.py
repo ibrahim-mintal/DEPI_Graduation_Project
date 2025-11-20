@@ -100,7 +100,7 @@ def shorten_url():
         print(f"✅ Shortened URL: {long_url} -> {short_code}")
 
         # base URL for Kubernetes / Docker
-        base_url = os.getenv("BASE_URL", "http://a864860df0876483db5c02aac8f6248e-1065857936.us-west-2.elb.amazonaws.com/")
+        base_url = os.getenv("BASE_URL", "http://localhost:5000/")
 
         response = {
             "short_code": short_code,

@@ -2,8 +2,9 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ebs-csi-controller-sa
-  namespace: kube-system
+  name: jenkins-sa
+  namespace: jenkins
+
   annotations:
       eks.amazonaws.com/role-arn: arn:aws:iam::877817966050:role/ebs_csi_policy
 
@@ -46,7 +47,7 @@ metadata:
   namespace: jenkins
 subjects:
   - kind: ServiceAccount
-    name: jenkins
+    name: jenkins-sa
     namespace: jenkins
 roleRef:
   kind: Role

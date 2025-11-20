@@ -60,8 +60,9 @@ resource "aws_iam_role_policy_attachment" "worker_node_AmazonEC2ContainerRegistr
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# Correct EBS CSI Driver policy ARN including service-role prefix
-resource "aws_iam_role_policy_attachment" "worker_node_AmazonEBSCSIDriverPolicy" {
-  role       = aws_iam_role.worker_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-}
+# # Correct EBS CSI Driver policy ARN including service-role prefix
+# resource "aws_iam_role_policy_attachment" "worker_node_AmazonEBSCSIDriverPolicy" {
+#   role       = aws_iam_role.worker_node_role.name
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+# }
+
