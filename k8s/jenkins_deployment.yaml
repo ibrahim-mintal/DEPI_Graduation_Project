@@ -19,30 +19,26 @@ spec:
         node-role: jenkins-node
       serviceAccountName: jenkins-sa
       securityContext:
-        fsGroup: 1000       # ensure permissions on /var/jenkins_home
+        fsGroup: 1000
         runAsUser: 1000
       containers:
         - name: jenkins
-          image: jenkins/jenkins:lts
+          image: mohfathy/jenkins-with-docker-kubectl-awscli
           ports:
-            - containerPort: 8080   # web UI
-            - containerPort: 50000  # agent listener (JNLP)
+            - containerPort: 8080
+            - containerPort: 50000
           livenessProbe:
             httpGet:
               path: "/login"
               port: 8080
             initialDelaySeconds: 90
             periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 5
           readinessProbe:
             httpGet:
               path: "/login"
               port: 8080
             initialDelaySeconds: 60
             periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
           volumeMounts:
             - name: jenkins-home
               mountPath: /var/jenkins_home
