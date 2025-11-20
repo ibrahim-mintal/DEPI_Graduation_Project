@@ -29,12 +29,10 @@ spec:
   containers:
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
-      command:
-      - cat
-      tty: true
       volumeMounts:
         - name: kaniko-secret
           mountPath: /kaniko/.docker
+          readOnly: true
   restartPolicy: Never
   volumes:
     - name: kaniko-secret
@@ -45,13 +43,12 @@ spec:
             }
             steps {
                 container('kaniko') {
-                    // Kaniko by default sees source at /workspace
                     sh """
-                        /kaniko/executor \\
-                          --dockerfile=app/Dockerfile \\
-                          --context=/workspace/app \\
-                          --destination=${IMAGE_NAME}:${IMAGE_TAG} \\
-                          --destination=${IMAGE_NAME}:latest
+                    /kaniko/executor \\
+                      --dockerfile=app/Dockerfile \\
+                      --context=/workspace/app \\
+                      --destination=${IMAGE_NAME}:${IMAGE_TAG} \\
+                      --destination=${IMAGE_NAME}:latest
                     """
                 }
             }
@@ -60,7 +57,6 @@ spec:
         stage('Deploy App to EKS') {
             agent any
             steps {
-                // Assume AWS and kubectl CLIs with credentials are accessible in this agent
                 sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
                 sh "kubectl apply -f k8s/app_ns.yaml"
                 sh "kubectl apply -f k8s/app_deployments.yaml -n ${KUBE_NAMESPACE_APP}"
