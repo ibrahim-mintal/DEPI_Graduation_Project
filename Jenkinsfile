@@ -10,6 +10,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             agent any
             steps {
@@ -31,7 +32,7 @@ metadata:
 spec:
   containers:
     - name: kaniko
-      image: gcr.io/kaniko-project/executor:latest
+      image: gcr.io/kaniko-project/executor:debug
       tty: true
       volumeMounts:
         - name: kaniko-secret
@@ -61,13 +62,19 @@ spec:
         stage('Deploy App to EKS') {
             agent any
             steps {
+                // Configure kubectl for your EKS cluster
                 sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
+
+                // Apply Kubernetes manifests
                 sh "kubectl apply -f k8s/app_ns.yaml"
                 sh "kubectl apply -f k8s/app_deployments.yaml -n ${KUBE_NAMESPACE_APP}"
                 sh "kubectl apply -f k8s/app_service.yaml -n ${KUBE_NAMESPACE_APP}"
+
+                // Wait for deployment rollout
                 sh "kubectl rollout status deployment/myapp -n ${KUBE_NAMESPACE_APP}"
             }
         }
+
     }
 
     post {
