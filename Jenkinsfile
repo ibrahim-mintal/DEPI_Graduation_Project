@@ -20,7 +20,7 @@ pipeline {
         stage('Build & Push Docker Image with Kaniko') {
             agent {
                 kubernetes {
-                    label 'kaniko-build'
+                    label "kaniko-${env.BUILD_NUMBER}"  // dynamic label to avoid scheduling issues
                     defaultContainer 'kaniko'
                     yaml """
 apiVersion: v1
@@ -47,12 +47,11 @@ spec:
             steps {
                 container('kaniko') {
                     sh """
-                    /kaniko/executor \\
+                      /kaniko/executor \\
                         --dockerfile=/workspace/app/Dockerfile \\
                         --context=/workspace/app \\
                         --destination=${IMAGE_NAME}:${IMAGE_TAG} \\
-                        --destination=${IMAGE_NAME}:latest \\
-                        --cleanup
+                        --destination=${IMAGE_NAME}:latest
                     """
                 }
             }
