@@ -66,7 +66,9 @@ resource "aws_iam_role_policy_attachment" "worker_node_AmazonEC2ContainerRegistr
 #   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 # }
 
-# Get EKS cluster info
+# second Terraform Apply enable:
+
+#Get EKS cluster info
 data "aws_eks_cluster" "cluster" {
   name = var.cluster_name
 }
@@ -75,7 +77,7 @@ data "aws_eks_cluster_auth" "cluster_auth" {
   name = var.cluster_name
 }
 
-# Create OIDC provider for EKS cluster (only if it doesn't exist)
+#Create OIDC provider for EKS cluster (only if it doesn't exist)
 resource "aws_iam_openid_connect_provider" "eks" {
   url = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
 
@@ -83,7 +85,7 @@ resource "aws_iam_openid_connect_provider" "eks" {
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da0afdcd71e"]
 }
 
-# IAM policy document for EBS CSI IRSA role
+#IAM policy document for EBS CSI IRSA role
 data "aws_iam_policy_document" "ebs_csi_irsa_assume_role" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
