@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "ibrahimmintal/url-shortener"
         IMAGE_TAG = "${GIT_COMMIT}"
-        KUBE_NAMESPACE_APP = "app"
+        KUBE_NAMESPACE_APP = "jenkins"
         AWS_REGION = "us-west-2"
         EKS_CLUSTER_NAME = "ci-cd-eks"
     }
