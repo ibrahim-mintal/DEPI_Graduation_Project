@@ -1,68 +1,73 @@
 pipeline {
-    agent any
+    agent none
 
     environment {
-        // DockerHub credentials stored in Jenkins
-        DOCKERHUB_CREDS = credentials('dockerhub-credentials')
-        IMAGE_NAME = "${DOCKERHUB_CREDS_USR}/url-shortener"  // Docker image name
-        IMAGE_TAG = "${GIT_COMMIT}"                          // Immutable tag using Git commit
-        KUBE_NAMESPACE_APP = "app"                           // App namespace
-        KUBE_NAMESPACE_JENKINS = "jenkins"                  // Jenkins namespace
-        EKS_CLUSTER_NAME = "ci-cd-eks"
+        IMAGE_NAME = "ibrahimmintal/url-shortener"
+        IMAGE_TAG = "${GIT_COMMIT}"
+        KUBE_NAMESPACE_APP = "app"
         AWS_REGION = "us-west-2"
-        
-        // Required for Docker-in-Docker sidecar
-        DOCKER_HOST = "tcp://localhost:2375"
+        EKS_CLUSTER_NAME = "ci-cd-eks"
     }
 
     stages {
         stage('Checkout') {
+            agent any
             steps {
                 checkout scm
             }
         }
 
-        stage('Build & Push Docker Image') {
+        stage('Build & Push Docker Image with Kaniko') {
+            agent {
+                kubernetes {
+                    label 'kaniko-build'
+                    defaultContainer 'kaniko'
+                    yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: kaniko
+spec:
+  containers:
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:latest
+      command:
+        - cat
+      tty: true
+      volumeMounts:
+        - name: kaniko-secret
+          mountPath: /kaniko/.docker
+          readOnly: true
+  restartPolicy: Never
+  volumes:
+    - name: kaniko-secret
+      secret:
+        secretName: regcred
+"""
+                }
+            }
             steps {
-                script {
+                container('kaniko') {
                     sh """
-                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ./app
-                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                      /kaniko/executor \\
+                        --dockerfile=/workspace/app/Dockerfile \\
+                        --context=/workspace/app \\
+                        --destination=${IMAGE_NAME}:${IMAGE_TAG} \\
+                        --destination=${IMAGE_NAME}:latest
                     """
-
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
-                                                      usernameVariable: 'USER',
-                                                      passwordVariable: 'PASS')]) {
-                        sh """
-                            echo $PASS | docker login -u $USER --password-stdin
-                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                            docker push ${IMAGE_NAME}:latest
-                        """
-                    }
                 }
             }
         }
 
-        stage('Deploy Jenkins & App to EKS') {
+        stage('Deploy App to EKS') {
+            agent any
             steps {
-                script {
-                    // Configure kubectl for EKS
-                    sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
-
-                    // Jenkins deployment
-                    sh "kubectl apply -f k8s/jenkins_ns.yaml"
-                    sh "kubectl apply -f k8s/rbac.yaml -n ${KUBE_NAMESPACE_JENKINS}"
-                    sh "kubectl apply -f k8s/pvc.yaml -n ${KUBE_NAMESPACE_JENKINS}"
-                    sh "kubectl apply -f k8s/jenkins_deployment.yaml -n ${KUBE_NAMESPACE_JENKINS}"
-                    sh "kubectl apply -f k8s/jenkins_service.yaml -n ${KUBE_NAMESPACE_JENKINS}"
-                    sh "kubectl rollout status deployment/jenkins -n ${KUBE_NAMESPACE_JENKINS}"
-
-                    // Application deployment
-                    sh "kubectl apply -f k8s/app_ns.yaml"
-                    sh "kubectl apply -f k8s/app_deployments.yaml -n ${KUBE_NAMESPACE_APP}"
-                    sh "kubectl apply -f k8s/app_service.yaml -n ${KUBE_NAMESPACE_APP}"
-                    sh "kubectl rollout status deployment/myapp -n ${KUBE_NAMESPACE_APP}"
-                }
+                sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
+                sh "kubectl apply -f k8s/app_ns.yaml"
+                sh "kubectl apply -f k8s/app_deployments.yaml -n ${KUBE_NAMESPACE_APP}"
+                sh "kubectl apply -f k8s/app_service.yaml -n ${KUBE_NAMESPACE_APP}"
+                sh "kubectl rollout status deployment/myapp -n ${KUBE_NAMESPACE_APP}"
             }
         }
     }
@@ -70,18 +75,9 @@ pipeline {
     post {
         success {
             echo "Pipeline completed successfully!"
-            sh "kubectl get all -n ${KUBE_NAMESPACE_APP}"
-            sh "kubectl get all -n ${KUBE_NAMESPACE_JENKINS}"
         }
         failure {
             echo "Pipeline failed!"
-        }
-        always {
-            sh """
-                docker logout || true
-                docker rmi ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest || true
-            """
-            cleanWs()
         }
     }
 }
