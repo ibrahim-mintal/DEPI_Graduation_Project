@@ -20,7 +20,7 @@ pipeline {
         stage('Build & Push Docker Image with Kaniko') {
             agent {
                 kubernetes {
-                    label "kaniko-${env.BUILD_NUMBER}"  // dynamic label to avoid scheduling issues
+                    label "kaniko-${env.BUILD_NUMBER}"
                     defaultContainer 'kaniko'
                     yaml """
 apiVersion: v1
@@ -32,6 +32,8 @@ spec:
   containers:
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
+      command: ["sleep", "infinity"]
+      tty: true
       volumeMounts:
         - name: kaniko-secret
           mountPath: /kaniko/.docker
