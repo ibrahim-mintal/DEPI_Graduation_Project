@@ -32,7 +32,7 @@ spec:
   containers:
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
-      command: ["sleep", "infinity"]
+      command: ["/busybox/sh", "-c", "cat"]
       tty: true
       volumeMounts:
         - name: kaniko-secret
@@ -49,10 +49,10 @@ spec:
             steps {
                 container('kaniko') {
                     sh """
-                      /kaniko/executor \\
-                        --dockerfile=/workspace/app/Dockerfile \\
-                        --context=/workspace/app \\
-                        --destination=${IMAGE_NAME}:${IMAGE_TAG} \\
+                      /kaniko/executor \
+                        --dockerfile=/workspace/app/Dockerfile \
+                        --context=/workspace/app \
+                        --destination=${IMAGE_NAME}:${IMAGE_TAG} \
                         --destination=${IMAGE_NAME}:latest
                     """
                 }
