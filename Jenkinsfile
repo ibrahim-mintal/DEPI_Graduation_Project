@@ -12,13 +12,14 @@ spec:
     node-role: jenkins-node
   containers:
   - name: kaniko
-    image: gcr.io/kaniko-project/executor:v1.23.0
+    image: gcr.io/kaniko-project/executor:v1.23.0-debug
     imagePullPolicy: Always
-    command:
-    - /busybox/sleep
-    args:
-    - "999999"
     tty: true
+    command:
+    - sh
+    args:
+    - -c
+    - "sleep 999999"
     volumeMounts:
     - name: docker-config
       mountPath: /kaniko/.docker
@@ -72,10 +73,13 @@ spec:
                         sh """
                             echo "=== Starting Kaniko Build ==="
                             /kaniko/executor \
-                              --context=${env.WORKSPACE}/app \
+                              --context=dir://${env.WORKSPACE}/app \
                               --dockerfile=${env.WORKSPACE}/app/Dockerfile \
                               --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} \
                               --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
+                              --single-snapshot \
+                              --cache=true \
+                              --snapshot-mode=redo \
                               --verbosity=info
                         """
                     }
