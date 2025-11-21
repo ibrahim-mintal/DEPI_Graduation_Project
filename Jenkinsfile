@@ -32,8 +32,9 @@ spec:
     }
 
     environment {
-        DOCKER_USERNAME = "ibrahim-mintal"
-        IMAGE_NAME = "graduation-project"
+        DOCKER_USERNAME = "ibrahimmintal"
+        IMAGE_NAME = "shorten-url
+"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
