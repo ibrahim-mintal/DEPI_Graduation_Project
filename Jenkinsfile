@@ -2,9 +2,9 @@ pipeline {
     agent none
 
     environment {
-        IMAGE_NAME = "ibrahimmintal/url-shortener"
+        IMAGE_NAME = "ibrahimmintal/shorten-url"
         IMAGE_TAG = "${GIT_COMMIT}"
-        KUBE_NAMESPACE_APP = "jenkins"
+        KUBE_NAMESPACE_APP = "app"
         AWS_REGION = "us-west-2"
         EKS_CLUSTER_NAME = "ci-cd-eks"
     }
@@ -59,9 +59,9 @@ spec:
             steps {
                 sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
                 sh "kubectl apply -f k8s/app_ns.yaml"
-                sh "kubectl apply -f k8s/app_deployments.yaml -n ${KUBE_NAMESPACE_APP}"
+                sh "kubectl apply -f k8s/app_deployment.yaml -n ${KUBE_NAMESPACE_APP}"
                 sh "kubectl apply -f k8s/app_service.yaml -n ${KUBE_NAMESPACE_APP}"
-                sh "kubectl rollout status deployment/myapp -n ${KUBE_NAMESPACE_APP}"
+                sh "kubectl rollout status deployment/app -n ${KUBE_NAMESPACE_APP}"
             }
         }
     }
