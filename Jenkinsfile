@@ -60,17 +60,19 @@ spec:
 
         stage('Set Docker Auth') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', 
-                                                  usernameVariable: 'DOCKER_USER', 
-                                                  passwordVariable: 'DOCKER_PASS')]) {
-                    script {
+                container('kaniko') {  // <-- run inside Kaniko container
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', 
+                                                    usernameVariable: 'DOCKER_USER', 
+                                                    passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
+                        mkdir -p /kaniko/.docker
                         echo "{\"auths\":{\"https://index.docker.io/v1/\":{\"username\":\"$DOCKER_USER\",\"password\":\"$DOCKER_PASS\",\"auth\":\"$(echo -n $DOCKER_USER:$DOCKER_PASS | base64)\"}}}" > /kaniko/.docker/config.json
                         '''
                     }
                 }
             }
         }
+
 
         stage('Build & Push Image with Kaniko') {
             steps {
