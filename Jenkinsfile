@@ -20,24 +20,9 @@ spec:
     volumeMounts:
     - name: docker-config
       mountPath: /kaniko/.docker
-  - name: jnlp
-    image: jenkins/inbound-agent:3345.v03dee9b_f88fc-1
-    env:
-    - name: JENKINS_AGENT_WORKDIR
-      value: /home/jenkins/agent
-    volumeMounts:
-    - name: workspace-volume
-      mountPath: /home/jenkins/agent
-      readOnly: false
   volumes:
   - name: docker-config
-    secret:
-      secretName: docker-config
-      items:
-      - key: config.json
-        path: config.json
-  - emptyDir: {}
-    name: workspace-volume
+    emptyDir: {}
 """
         }
     }
@@ -53,7 +38,6 @@ spec:
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -70,6 +54,20 @@ spec:
                         echo "==== Checking Dockerfile ===="
                         find ${env.WORKSPACE} -maxdepth 3 -name 'Dockerfile'
                     """
+                }
+            }
+        }
+
+        stage('Set Docker Auth') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', 
+                                                  usernameVariable: 'DOCKER_USER', 
+                                                  passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        sh '''
+                        echo "{\"auths\":{\"https://index.docker.io/v1/\":{\"username\":\"$DOCKER_USER\",\"password\":\"$DOCKER_PASS\",\"auth\":\"$(echo -n $DOCKER_USER:$DOCKER_PASS | base64)\"}}}" > /kaniko/.docker/config.json
+                        '''
+                    }
                 }
             }
         }
@@ -97,7 +95,7 @@ spec:
 
         stage('Success') {
             steps {
-                echo "Image pushed successfully: ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+                echo "Image pushed: ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
                 echo "Latest tag updated."
             }
         }
