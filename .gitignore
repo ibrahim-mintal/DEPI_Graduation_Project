@@ -6,6 +6,9 @@
 *.tfstate.*
 steps.txt
 jenkins-password.txt
+jenkins-ca.crt
+jenkins-sa-token.txt
+
 # Crash logs
 crash.log
 
