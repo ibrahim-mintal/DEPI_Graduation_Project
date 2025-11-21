@@ -20,15 +20,27 @@ spec:
     volumeMounts:
     - name: docker-config
       mountPath: /kaniko/.docker
+    - name: workspace-volume
+      mountPath: /home/jenkins/agent
   - name: kubectl
     image: bitnami/kubectl:latest
     imagePullPolicy: Always
     command:
-    - cat
+    - /bin/sh
     tty: true
+    volumeMounts:
+    - name: workspace-volume
+      mountPath: /home/jenkins/agent
+    - name: kube-config
+      mountPath: /root/.kube
   volumes:
   - name: docker-config
     emptyDir: {}
+  - name: workspace-volume
+    emptyDir: {}
+  - name: kube-config
+    secret:
+      secretName: jenkins-kubeconfig
 """
         }
     }
@@ -40,7 +52,6 @@ spec:
     environment {
         DOCKER_USERNAME = "ibrahimmintal"
         IMAGE_NAME = "shorten-url"
-
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
@@ -72,48 +83,42 @@ spec:
                         sh '''
                         mkdir -p /kaniko/.docker
                         cat <<EOF > /kaniko/.docker/config.json
-        {
-        "auths": {
-            "https://index.docker.io/v1/": {
-            "username": "$DOCKER_USER",
-            "password": "$DOCKER_PASS",
-            "auth": "$(echo -n $DOCKER_USER:$DOCKER_PASS | base64)"
-            }
-        }
-        }
-        EOF
+{
+  "auths": {
+    "https://index.docker.io/v1/": {
+      "username": "$DOCKER_USER",
+      "password": "$DOCKER_PASS",
+      "auth": "$(echo -n $DOCKER_USER:$DOCKER_PASS | base64)"
+    }
+  }
+}
+EOF
                         '''
                     }
                 }
             }
         }
 
-
-
-
-
         stage('Build & Push Image with Kaniko') {
             steps {
                 container('kaniko') {
-                    script {
-                        sh """
-                            echo "=== Starting Kaniko Build & Push ==="
-                            /kaniko/executor \
-                              --context=dir://${env.WORKSPACE}/app \
-                              --dockerfile=${env.WORKSPACE}/app/Dockerfile \
-                              --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} \
-                              --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
-                              --single-snapshot \
-                              --cache=true \
-                              --snapshot-mode=redo \
-                              --verbosity=info
-                        """
-                    }
+                    sh """
+                        echo "=== Starting Kaniko Build & Push ==="
+                        /kaniko/executor \
+                          --context=dir://${env.WORKSPACE}/app \
+                          --dockerfile=${env.WORKSPACE}/app/Dockerfile \
+                          --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} \
+                          --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
+                          --single-snapshot \
+                          --cache=true \
+                          --snapshot-mode=redo \
+                          --verbosity=info
+                    """
                 }
             }
         }
 
-        stage('Success') {
+        stage('Image pushed successfully') {
             steps {
                 echo "Image pushed: ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
                 echo "Latest tag updated."
@@ -123,23 +128,14 @@ spec:
         stage('Deploy to EKS') {
             steps {
                 container('kubectl') {
-                    script {
-                        sh """
-                            echo "=== Deploying to EKS ==="
-                            kubectl set image deployment/app app=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} -n app
-                            kubectl rollout status deployment/app -n app --timeout=300s
-                        """
-                    }
+                    sh """
+                        echo "=== Deploying to EKS ==="
+                        kubectl set image deployment/app app=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} -n app
+                        kubectl rollout status deployment/app -n app --timeout=300s
+                    """
                 }
             }
         }
-
-
-
-
-
-
-        
     }
 
     post {
