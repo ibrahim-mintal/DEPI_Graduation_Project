@@ -15,18 +15,13 @@ spec:
     image: gcr.io/kaniko-project/executor:v1.23.0-debug
     imagePullPolicy: Always
     command:
-    - /busybox/cat
+    - /busybox/sleep
+    args:
+    - "999999"
     tty: true
     volumeMounts:
     - name: docker-config
       mountPath: /kaniko/.docker
-    resources:
-      requests:
-        memory: "256Mi"
-        cpu: "200m"
-      limits:
-        memory: "512Mi"
-        cpu: "400m"
   volumes:
   - name: docker-config
     secret:
@@ -37,78 +32,79 @@ spec:
 '''
         }
     }
-    
+
+    /* 🔥 Ensure GitHub webhook triggers the pipeline */
+    triggers {
+        githubPush()
+    }
+
     environment {
-        DOCKER_REGISTRY = 'docker.io'
-        DOCKER_USERNAME = 'ibrahim-mintal'  // Update this
-        IMAGE_NAME = 'graduation-project'
+        DOCKER_USERNAME = "ibrahim-mintal"
+        IMAGE_NAME = "graduation-project"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
-    
+
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
-        
-        stage('Build Info') {
+
+        stage('Debug Workspace') {
             steps {
                 script {
-                    echo "======================================"
-                    echo "Building: ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
-                    echo "======================================"
+                    echo "Workspace: ${env.WORKSPACE}"
+                    sh """
+                        echo "==== Directory Tree ===="
+                        ls -R ${env.WORKSPACE}
+                        echo "==== Checking Dockerfile ===="
+                        find ${env.WORKSPACE} -maxdepth 3 -name 'Dockerfile'
+                    """
                 }
             }
         }
-        
-        stage('Build and Push Docker Image') {
+
+        stage('Build & Push Image with Kaniko') {
             steps {
                 container('kaniko') {
                     script {
                         sh """
-                            echo "Starting Kaniko build with minimal resources..."
+                            echo "=== Starting Kaniko Build ==="
                             /kaniko/executor \
-                                --dockerfile=Dockerfile \
-                                --context=dir://${env.WORKSPACE} \
-                                --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} \
-                                --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
-                                --cache=false \
-                                --single-snapshot \
-                                --compressed-caching=false \
-                                --snapshot-mode=redo \
-                                --log-format=text \
-                                --verbosity=info
+                              --context=dir://${env.WORKSPACE} \
+                              --dockerfile=${env.WORKSPACE}/Dockerfile \
+                              --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} \
+                              --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
+                              --single-snapshot \
+                              --cache=false \
+                              --snapshot-mode=redo \
+                              --log-format=text \
+                              --verbosity=info
                         """
                     }
                 }
             }
         }
-        
+
         stage('Success') {
             steps {
-                script {
-                    echo "======================================"
-                    echo "✓ Image pushed successfully!"
-                    echo "======================================"
-                    echo "Pull commands:"
-                    echo "  docker pull ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
-                    echo "  docker pull ${DOCKER_USERNAME}/${IMAGE_NAME}:latest"
-                    echo "======================================"
-                }
+                echo "Image pushed: ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+                echo "Latest tag updated."
             }
         }
     }
-    
+
     post {
         success {
-            echo '✓ Pipeline completed successfully!'
+            echo "✓ Pipeline completed successfully"
         }
         failure {
-            echo '✗ Pipeline failed - check logs above'
+            echo "✗ Pipeline failed — check logs"
         }
         always {
-            echo 'Cleaning up...'
+            echo "Clean up complete."
         }
     }
 }
