@@ -3,4 +3,3 @@ aws eks --region us-west-2 update-kubeconfig --name ci-cd-eks
 
 2. 
 
-kubectl apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-1.16"
