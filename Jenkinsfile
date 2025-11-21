@@ -36,7 +36,9 @@ kind: Pod
 spec:
   containers:
     - name: kaniko
-      image: gcr.io/kaniko-project/executor:latest
+      image: gcr.io/kaniko-project/executor:debug
+      command: ["/busybox/sh"]
+      tty: true
       volumeMounts:
         - name: kaniko-secret
           mountPath: /kaniko/.docker
@@ -53,8 +55,8 @@ spec:
                 container('kaniko') {
                     sh """
                     /kaniko/executor \
-                      --context=/workspace/app \
-                      --dockerfile=/workspace/app/Dockerfile \
+                      --context dir:///workspace/app \
+                      --dockerfile Dockerfile \
                       --destination=${IMAGE_NAME}:${IMAGE_TAG} \
                       --destination=${IMAGE_NAME}:latest
                     """
