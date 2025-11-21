@@ -1,87 +1,108 @@
 pipeline {
     agent {
         kubernetes {
+            label 'graduation-project'
+            defaultContainer 'jnlp'
             yaml """
 apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    app: kaniko
+    some-label: graduation-project
 spec:
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:v1.23.0-debug
-    command:
-    - /busybox/sleep
-    args:
-    - "999999"
+    args: ["999999"]
+    tty: true
     volumeMounts:
-    - name: docker-config
-      mountPath: /kaniko/.docker
-    - name: workspace-volume
-      mountPath: /home/jenkins/agent
+      - name: docker-config
+        mountPath: /kaniko/.docker
+      - name: workspace-volume
+        mountPath: /home/jenkins/agent
+        readOnly: false
   - name: jnlp
-    image: jenkins/inbound-agent:latest
+    image: jenkins/inbound-agent:3345.v03dee9b_f88fc-1
+    env:
+      - name: JENKINS_PROTOCOLS
+        value: "JNLP4-connect"
+      - name: JENKINS_AGENT_WORKDIR
+        value: "/home/jenkins/agent"
     volumeMounts:
-    - name: workspace-volume
-      mountPath: /home/jenkins/agent
+      - name: workspace-volume
+        mountPath: /home/jenkins/agent
+        readOnly: false
   volumes:
-  - name: docker-config
-    secret:
-      secretName: docker-config
-  - name: workspace-volume
-    emptyDir: {}
+    - name: docker-config
+      secret:
+        secretName: docker-config
+        items:
+          - key: config.json
+            path: config.json
+    - name: workspace-volume
+      emptyDir: {}
 """
         }
     }
 
     environment {
-        IMAGE_NAME = "ibrahim-mintal/graduation-project"
-        BUILD_CONTEXT = "/home/jenkins/agent/workspace/Graduation_Project/app"
+        IMAGE_TAG = "ibrahim-mintal/graduation-project:${BUILD_NUMBER}"
+        LATEST_TAG = "ibrahim-mintal/graduation-project:latest"
+        DOCKERFILE_PATH = "app/Dockerfile"
+        CONTEXT_DIR = "app"
     }
 
     stages {
-
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build & Push Image with Kaniko') {
+        stage('Debug Workspace') {
             steps {
-                container('kaniko') {
-                    sh """
-                        echo "=== Using Context: ${BUILD_CONTEXT} ==="
-                        echo "=== Dockerfile Path: ${BUILD_CONTEXT}/Dockerfile ==="
-
-                        /kaniko/executor \
-                          --context=dir://${BUILD_CONTEXT} \
-                          --dockerfile=Dockerfile \
-                          --destination=${IMAGE_NAME}:${BUILD_NUMBER} \
-                          --destination=${IMAGE_NAME}:latest \
-                          --single-snapshot \
-                          --snapshot-mode=redo \
-                          --cache=false
-                    """
-                }
+                echo "Workspace: ${env.WORKSPACE}"
+                sh '''
+                    echo ==== Directory Tree ====
+                    ls -R ${WORKSPACE}
+                    echo ==== Checking Dockerfile ====
+                    find ${WORKSPACE} -maxdepth 3 -name Dockerfile
+                '''
             }
         }
 
-        stage('Success') {
-            when { success() }
-            steps {
-                echo "✓ Build & Push Successful!"
+        stage('Build & Push Image with Kaniko') {
+            container('kaniko') {
+                steps {
+                    script {
+                        sh """
+                            echo '=== Starting Kaniko Build ==='
+                            /kaniko/executor \
+                              --context=dir://${WORKSPACE}/${CONTEXT_DIR} \
+                              --dockerfile=${WORKSPACE}/${DOCKERFILE_PATH} \
+                              --destination=${IMAGE_TAG} \
+                              --destination=${LATEST_TAG} \
+                              --single-snapshot \
+                              --cache=false \
+                              --snapshot-mode=redo \
+                              --log-format=text \
+                              --verbosity=info
+                        """
+                    }
+                }
             }
         }
     }
 
     post {
-        always {
-            echo "Cleanup complete."
+        success {
+            echo "✓ Build & Push Successful!"
         }
         failure {
             echo "✗ Pipeline failed — check logs"
+        }
+        always {
+            echo "Clean up complete."
         }
     }
 }
