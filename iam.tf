@@ -70,10 +70,12 @@ resource "aws_iam_role_policy_attachment" "worker_node_AmazonEC2ContainerRegistr
 
 #Get EKS cluster info
 data "aws_eks_cluster" "cluster" {
+  depends_on = [ aws_eks_cluster.eks ]
   name = var.cluster_name
 }
 
 data "aws_eks_cluster_auth" "cluster_auth" {
+  depends_on = [ aws_eks_cluster.eks ]
   name = var.cluster_name
 }
 

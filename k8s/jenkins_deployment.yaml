@@ -14,17 +14,18 @@ spec:
         app: jenkins
     spec:
       serviceAccountName: jenkins-sa
+      securityContext:
+        fsGroup: 1000          # <-- GIVE PERMISSION TO JENKINS USER
       nodeSelector:
         "node-role": "jenkins-node"
       imagePullSecrets:
-        - name: regcred      # <-- Added for DockerHub authentication
+        - name: regcred
       containers:
         - name: jenkins
           image: mohfathy/jenkins-with-docker-kubectl-awscli
           ports:
             - containerPort: 8080
             - containerPort: 50000
-
           volumeMounts:
             - name: jenkins-home
               mountPath: /var/jenkins_home

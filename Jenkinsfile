@@ -8,7 +8,6 @@ metadata:
   labels:
     jenkins: agent
 spec:
-  serviceAccountName: jenkins-sa
   nodeSelector:
     node-role: jenkins-node
   containers:

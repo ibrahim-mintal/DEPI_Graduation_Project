@@ -17,6 +17,10 @@ metadata:
   name: jenkins-pod-manager
   namespace: jenkins
 rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+
   - apiGroups: [""]
     resources:
       - pods
@@ -39,7 +43,21 @@ rules:
       - watch
 
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-pod-manager-binding
+  namespace: jenkins
+subjects:
+  - kind: ServiceAccount
+    name: jenkins-sa
+    namespace: jenkins
+roleRef:
+  kind: Role
+  name: jenkins-pod-manager
+  apiGroup: rbac.authorization.k8s.io
 
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -80,16 +98,3 @@ roleRef:
 
 ---
 
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: jenkins-pod-manager-binding
-  namespace: jenkins
-subjects:
-  - kind: ServiceAccount
-    name: jenkins-sa
-    namespace: jenkins
-roleRef:
-  kind: Role
-  name: jenkins-pod-manager
-  apiGroup: rbac.authorization.k8s.io

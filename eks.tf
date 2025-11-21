@@ -67,7 +67,6 @@ resource "aws_eks_node_group" "app_ng" {
 resource "aws_eks_addon" "ebs_csi" {
   cluster_name      = var.cluster_name
   addon_name        = "aws-ebs-csi-driver"
-  addon_version     = "v1.29.0-eksbuild.1" # optional, AWS picks latest if removed
   resolve_conflicts_on_update =  "OVERWRITE"
 
   service_account_role_arn = aws_iam_role.ebs_csi_irsa_role.arn
