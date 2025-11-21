@@ -36,10 +36,9 @@ kind: Pod
 spec:
   containers:
     - name: kaniko
-      image: gcr.io/kaniko-project/executor:debug
-      command: ["/busybox/sh", "-c"]
-      args: ["cat"]      # keep container alive
+      image: gcr.io/kaniko-project/executor:latest
       tty: true
+      stdin: true
       volumeMounts:
         - name: kaniko-secret
           mountPath: /kaniko/.docker
