@@ -10,6 +10,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             agent any
             steps {
@@ -36,6 +37,9 @@ spec:
   containers:
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
+      command: ["/busybox/sh", "-c"]
+      args: ["cat"]      # keep container alive
+      tty: true
       volumeMounts:
         - name: kaniko-secret
           mountPath: /kaniko/.docker
@@ -51,11 +55,12 @@ spec:
             steps {
                 container('kaniko') {
                     sh """
-                    /kaniko/executor \\
-                      --dockerfile=app/Dockerfile \\
-                      --context=/workspace/app \\
-                      --destination=${IMAGE_NAME}:${IMAGE_TAG} \\
-                      --destination=${IMAGE_NAME}:latest
+                    /kaniko/executor \
+                      --context=dir://workspace/app \
+                      --dockerfile=workspace/app/Dockerfile \
+                      --destination=${IMAGE_NAME}:${IMAGE_TAG} \
+                      --destination=${IMAGE_NAME}:latest \
+                      --verbosity=info
                     """
                 }
             }
