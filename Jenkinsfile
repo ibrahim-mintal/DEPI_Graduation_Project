@@ -33,8 +33,8 @@ spec:
 
     environment {
         DOCKER_USERNAME = "ibrahimmintal"
-        IMAGE_NAME = "shorten-url
-"
+        IMAGE_NAME = "shorten-url"
+
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
