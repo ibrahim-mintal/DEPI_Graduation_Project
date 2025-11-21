@@ -124,21 +124,15 @@ spec:
             steps {
                 container('kubectl') {
                     withCredentials([awsAccessKeyId(credentialsId: 'aws-creds', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                        script {
-                            sh """
-                                echo "=== Deploying to EKS ==="
-                                export AWS_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID
-                                export AWS_SECRET_ACCESS_KEY=\$AWS_SECRET_ACCESS_KEY
-                                aws eks --region us-west-2 update-kubeconfig --name ci-cd-eks
-                                kubectl apply -f k8s/app_ns.yaml
-                                kubectl apply -f k8s/app_service.yaml
-                                kubectl apply -f k8s/app_deployment.yaml
-                                kubectl set image deployment/app app=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} -n app
-                                kubectl rollout status deployment/app -n app --timeout=300s
-                            """
-                        }
+                        sh """
+                            aws eks --region us-west-2 update-kubeconfig --name ci-cd-eks
+                            kubectl apply -f k8s/app_ns.yaml
+                            kubectl apply -f k8s/app_service.yaml
+                            kubectl apply -f k8s/app_deployment.yaml
+                        """
                     }
                 }
+
             }
         }
 
