@@ -72,6 +72,8 @@ spec:
           image: mohfathy/jenkins-with-docker-kubectl-awscli
           ports:
             - containerPort: 8080
+            - containerPort: 50000
+
           volumeMounts:
             - name: jenkins-home
               mountPath: /var/jenkins_home

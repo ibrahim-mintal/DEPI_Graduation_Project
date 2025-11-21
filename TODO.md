@@ -1,4 +1,0 @@
-- [ ] Edit Jenkinsfile to change rollout status from `deployment/myapp` to `deployment/app`
-- [ ] Commit and push the changes to the repository
-- [ ] Run the Jenkins pipeline and monitor the logs for success
-- [ ] Verify the app deployment in the `app` namespace
