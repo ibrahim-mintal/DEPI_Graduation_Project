@@ -8,8 +8,7 @@ metadata:
   labels:
     jenkins: agent
 spec:
-  nodeSelector:
-    node-role: jenkins-node
+  serviceAccountName: jenkins-sa
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:v1.23.0-debug
@@ -26,6 +25,8 @@ spec:
     command:
     - cat
     tty: true
+  imagePullSecrets:
+  - name: regcred
   volumes:
   - name: docker-config
     emptyDir: {}
@@ -40,7 +41,6 @@ spec:
     environment {
         DOCKER_USERNAME = "ibrahimmintal"
         IMAGE_NAME = "shorten-url"
-
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
@@ -64,33 +64,6 @@ spec:
                 }
             }
         }
-
-        stage('Set Docker Auth') {
-            steps {
-                container('kaniko') {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh '''
-                        mkdir -p /kaniko/.docker
-                        cat <<EOF > /kaniko/.docker/config.json
-        {
-        "auths": {
-            "https://index.docker.io/v1/": {
-            "username": "$DOCKER_USER",
-            "password": "$DOCKER_PASS",
-            "auth": "$(echo -n $DOCKER_USER:$DOCKER_PASS | base64)"
-            }
-        }
-        }
-        EOF
-                        '''
-                    }
-                }
-            }
-        }
-
-
-
-
 
         stage('Build & Push Image with Kaniko') {
             steps {
@@ -124,24 +97,21 @@ spec:
             steps {
                 container('kubectl') {
                     withCredentials([awsAccessKeyId(credentialsId: 'aws-creds', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                        sh """
-                            aws eks --region us-west-2 update-kubeconfig --name ci-cd-eks
-                            kubectl apply -f k8s/app_ns.yaml
-                            kubectl apply -f k8s/app_service.yaml
-                            kubectl apply -f k8s/app_deployment.yaml
-                        """
+                        script {
+                            sh """
+                                echo "=== Deploying to EKS ==="
+                                aws eks --region us-west-2 update-kubeconfig --name ci-cd-eks
+                                kubectl apply -f k8s/app_ns.yaml
+                                kubectl apply -f k8s/app_service.yaml
+                                kubectl apply -f k8s/app_deployment.yaml
+                                kubectl set image deployment/app app=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} -n app
+                                kubectl rollout status deployment/app -n app --timeout=300s
+                            """
+                        }
                     }
                 }
-
             }
         }
-
-
-
-
-
-
-        
     }
 
     post {
