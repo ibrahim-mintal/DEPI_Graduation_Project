@@ -20,6 +20,12 @@ spec:
     volumeMounts:
     - name: docker-config
       mountPath: /kaniko/.docker
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
   volumes:
   - name: docker-config
     emptyDir: {}
@@ -113,6 +119,27 @@ spec:
                 echo "Latest tag updated."
             }
         }
+
+        stage('Deploy to EKS') {
+            steps {
+                container('kubectl') {
+                    script {
+                        sh """
+                            echo "=== Deploying to EKS ==="
+                            kubectl set image deployment/app app=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} -n app
+                            kubectl rollout status deployment/app -n app --timeout=300s
+                        """
+                    }
+                }
+            }
+        }
+
+
+
+
+
+
+        
     }
 
     post {

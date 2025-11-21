@@ -1,0 +1,3 @@
+- [ ] Update Jenkinsfile agent pod specification to include a kubectl container
+- [ ] Add a new 'Deploy to EKS' stage after 'Build & Push Image with Kaniko' stage
+- [ ] In the new stage, use kubectl to set the deployment image and wait for rollout

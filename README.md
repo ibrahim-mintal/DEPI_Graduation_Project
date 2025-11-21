@@ -173,7 +173,7 @@ The Jenkins pipeline is defined in `Jenkinsfile` and includes the following stag
 
 1. **Checkout**: Pulls the latest code from the GitHub repository.
 2. **Build Docker Image**: Builds the Docker image for the Flask app.
-3. **Push to ECR**: Tags and pushes the image to Amazon ECR.
+3. **Push to DockerHub**: Tags and pushes the image to DockerHub.
 4. **Deploy to EKS**: Updates the Kubernetes deployment with the new image and waits for rollout.
 
 To set up the pipeline:
