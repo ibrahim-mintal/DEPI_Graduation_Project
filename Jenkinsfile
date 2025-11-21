@@ -72,8 +72,8 @@ spec:
         }
 
         stage('Build & Push Image with Kaniko') {
-            container('kaniko') {
-                steps {
+            steps {
+                container('kaniko') {
                     script {
                         sh """
                             echo '=== Starting Kaniko Build ==='
