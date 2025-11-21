@@ -74,7 +74,7 @@ spec:
                             echo "=== Starting Kaniko Build ==="
                             /kaniko/executor \
                               --context=dir://${env.WORKSPACE} \
-                              --dockerfile=${env.WORKSPACE}/Dockerfile \
+                              --dockerfile=${env.WORKSPACE}/app/Dockerfile \
                               --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} \
                               --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
                               --single-snapshot \
