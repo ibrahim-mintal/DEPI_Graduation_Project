@@ -12,7 +12,7 @@ spec:
     node-role: jenkins-node
   containers:
   - name: kaniko
-    image: gcr.io/kaniko-project/executor:v1.23.0-debug
+    image: gcr.io/kaniko-project/executor:v1.23.0
     imagePullPolicy: Always
     command:
     - /busybox/sleep
@@ -33,7 +33,6 @@ spec:
         }
     }
 
-    /* 🔥 Ensure GitHub webhook triggers the pipeline */
     triggers {
         githubPush()
     }
@@ -73,14 +72,10 @@ spec:
                         sh """
                             echo "=== Starting Kaniko Build ==="
                             /kaniko/executor \
-                              --context=dir://${env.WORKSPACE} \
+                              --context=${env.WORKSPACE}/app \
                               --dockerfile=${env.WORKSPACE}/app/Dockerfile \
                               --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} \
                               --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
-                              --single-snapshot \
-                              --cache=false \
-                              --snapshot-mode=redo \
-                              --log-format=text \
                               --verbosity=info
                         """
                     }
