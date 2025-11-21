@@ -17,6 +17,13 @@ pipeline {
             }
         }
 
+        stage('Apply Docker Secret') {
+            agent any
+            steps {
+                sh "kubectl apply -f k8s/docker_secret.yaml -n jenkins"
+            }
+        }
+
         stage('Build & Push Docker Image with Kaniko') {
             agent {
                 kubernetes {
