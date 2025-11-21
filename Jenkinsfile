@@ -9,6 +9,8 @@ metadata:
     jenkins: agent
 spec:
   serviceAccountName: jenkins-sa
+  nodeSelector:
+    node-role: jenkins-node
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:v1.23.0-debug
@@ -16,20 +18,12 @@ spec:
     command:
     - cat
     tty: true
-    volumeMounts:
-    - name: docker-config
-      mountPath: /kaniko/.docker
   - name: kubectl
     image: bitnami/kubectl:latest
     imagePullPolicy: Always
     command:
     - cat
     tty: true
-  imagePullSecrets:
-  - name: regcred
-  volumes:
-  - name: docker-config
-    emptyDir: {}
 """
         }
     }
@@ -40,8 +34,11 @@ spec:
 
     environment {
         DOCKER_USERNAME = "ibrahimmintal"
-        IMAGE_NAME = "shorten-url"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        IMAGE_NAME     = "shorten-url"
+        IMAGE_TAG      = "${env.BUILD_NUMBER}"
+        AWS_REGION     = "us-west-2"
+        EKS_CLUSTER    = "ci-cd-eks"
+        NAMESPACE      = "app"
     }
 
     stages {
@@ -100,12 +97,14 @@ spec:
                         script {
                             sh """
                                 echo "=== Deploying to EKS ==="
-                                aws eks --region us-west-2 update-kubeconfig --name ci-cd-eks
+                                export AWS_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID
+                                export AWS_SECRET_ACCESS_KEY=\$AWS_SECRET_ACCESS_KEY
+                                aws eks --region ${AWS_REGION} update-kubeconfig --name ${EKS_CLUSTER}
                                 kubectl apply -f k8s/app_ns.yaml
                                 kubectl apply -f k8s/app_service.yaml
                                 kubectl apply -f k8s/app_deployment.yaml
-                                kubectl set image deployment/app app=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} -n app
-                                kubectl rollout status deployment/app -n app --timeout=300s
+                                kubectl set image deployment/app app=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} -n ${NAMESPACE}
+                                kubectl rollout status deployment/app -n ${NAMESPACE} --timeout=300s
                             """
                         }
                     }
