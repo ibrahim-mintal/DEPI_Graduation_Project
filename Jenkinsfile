@@ -1,86 +1,191 @@
+// pipeline {
+//     agent none
+
+//     environment {
+//         IMAGE_NAME = "ibrahimmintal/shorten-url"
+//         IMAGE_TAG = "${GIT_COMMIT}"
+//         KUBE_NAMESPACE_APP = "app"
+//         AWS_REGION = "us-west-2"
+//         EKS_CLUSTER_NAME = "ci-cd-eks"
+//     }
+
+//     stages {
+//         stage('Checkout') {
+//             agent any
+//             steps {
+//                 checkout scm
+//             }
+//         }
+
+//         stage('Apply Docker Secret') {
+//             agent any
+//             steps {
+//                 sh "kubectl apply -f k8s/docker_secret.yaml -n jenkins"
+//             }
+//         }
+
+//         stage('Build & Push Docker Image with Kaniko') {
+//             agent {
+//                 kubernetes {
+//                     label "kaniko-${env.BUILD_NUMBER}"
+//                     defaultContainer 'kaniko'
+//                     yaml """
+// apiVersion: v1
+// kind: Pod
+// spec:
+//   containers:
+//     - name: kaniko
+//       image: gcr.io/kaniko-project/executor:debug
+//       command: ["/busybox/sh"]
+//       tty: true
+//       volumeMounts:
+//         - name: kaniko-secret
+//           mountPath: /kaniko/.docker
+//           readOnly: true
+//   restartPolicy: Never
+//   volumes:
+//     - name: kaniko-secret
+//       secret:
+//         secretName: regcred
+// """
+//                 }
+//             }
+//             steps {
+//                 container('kaniko') {
+//                     sh """
+//                     /kaniko/executor \\
+//                       --context dir:///workspace/app \\
+//                       --dockerfile Dockerfile \\
+//                       --destination=${IMAGE_NAME}:${IMAGE_TAG} \\
+//                       --destination=${IMAGE_NAME}:latest
+//                     """
+//                 }
+//             }
+//         }
+
+//         stage('Deploy App to EKS') {
+//             agent any
+//             steps {
+//                 sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
+//                 sh "kubectl apply -f k8s/app_ns.yaml"
+//                 sh "kubectl apply -f k8s/app_deployment.yaml -n ${KUBE_NAMESPACE_APP}"
+//                 sh "kubectl apply -f k8s/app_service.yaml -n ${KUBE_NAMESPACE_APP}"
+//                 sh "kubectl rollout status deployment/app -n ${KUBE_NAMESPACE_APP}"
+//             }
+//         }
+//     }
+
+//     post {
+//         success {
+//             echo "Pipeline completed successfully!"
+//         }
+//         failure {
+//             echo "Pipeline failed!"
+//         }
+//     }
+// }
+
+
 pipeline {
-    agent none
-
-    environment {
-        IMAGE_NAME = "ibrahimmintal/shorten-url"
-        IMAGE_TAG = "${GIT_COMMIT}"
-        KUBE_NAMESPACE_APP = "app"
-        AWS_REGION = "us-west-2"
-        EKS_CLUSTER_NAME = "ci-cd-eks"
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: agent
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:v1.23.0-debug
+    imagePullPolicy: Always
+    command:
+    - /busybox/cat
+    tty: true
+    volumeMounts:
+    - name: docker-config
+      mountPath: /kaniko/.docker
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+  volumes:
+  - name: docker-config
+    secret:
+      secretName: docker-config
+      items:
+      - key: config.json
+        path: config.json
+'''
+        }
     }
-
+    
+    environment {
+        DOCKER_REGISTRY = 'docker.io'
+        DOCKER_USERNAME = 'ibrahimmintal'
+        IMAGE_NAME = 'shorten-url'
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+    }
+    
     stages {
         stage('Checkout') {
-            agent any
             steps {
                 checkout scm
             }
         }
-
-        stage('Apply Docker Secret') {
-            agent any
+        
+        stage('Build Info') {
             steps {
-                sh "kubectl apply -f k8s/docker_secret.yaml -n jenkins"
-            }
-        }
-
-        stage('Build & Push Docker Image with Kaniko') {
-            agent {
-                kubernetes {
-                    label "kaniko-${env.BUILD_NUMBER}"
-                    defaultContainer 'kaniko'
-                    yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: kaniko
-      image: gcr.io/kaniko-project/executor:debug
-      command: ["/busybox/sh"]
-      tty: true
-      volumeMounts:
-        - name: kaniko-secret
-          mountPath: /kaniko/.docker
-          readOnly: true
-  restartPolicy: Never
-  volumes:
-    - name: kaniko-secret
-      secret:
-        secretName: regcred
-"""
+                script {
+                    echo "Building image: ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "Workspace: ${env.WORKSPACE}"
                 }
             }
+        }
+        
+        stage('Build and Push Docker Image') {
             steps {
                 container('kaniko') {
-                    sh """
-                    /kaniko/executor \\
-                      --context dir:///workspace/app \\
-                      --dockerfile Dockerfile \\
-                      --destination=${IMAGE_NAME}:${IMAGE_TAG} \\
-                      --destination=${IMAGE_NAME}:latest
-                    """
+                    script {
+                        sh """
+                            /kaniko/executor \
+                                --dockerfile=Dockerfile \
+                                --context=dir://${env.WORKSPACE} \
+                                --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} \
+                                --destination=${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
+                                --cache=true \
+                                --cache-ttl=24h \
+                                --compressed-caching=false \
+                                --snapshot-mode=redo \
+                                --log-format=text \
+                                --verbosity=info
+                        """
+                    }
                 }
             }
         }
-
-        stage('Deploy App to EKS') {
-            agent any
+        
+        stage('Image Info') {
             steps {
-                sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
-                sh "kubectl apply -f k8s/app_ns.yaml"
-                sh "kubectl apply -f k8s/app_deployment.yaml -n ${KUBE_NAMESPACE_APP}"
-                sh "kubectl apply -f k8s/app_service.yaml -n ${KUBE_NAMESPACE_APP}"
-                sh "kubectl rollout status deployment/app -n ${KUBE_NAMESPACE_APP}"
+                script {
+                    echo "Image pushed successfully!"
+                    echo "Pull with: docker pull ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "Pull latest: docker pull ${DOCKER_USERNAME}/${IMAGE_NAME}:latest"
+                }
             }
         }
     }
-
+    
     post {
         success {
-            echo "Pipeline completed successfully!"
+            echo 'Pipeline completed successfully!'
         }
         failure {
-            echo "Pipeline failed!"
+            echo 'Pipeline failed!'
         }
     }
 }
