@@ -55,11 +55,10 @@ spec:
                 container('kaniko') {
                     sh """
                     /kaniko/executor \
-                      --context=dir://workspace/app \
-                      --dockerfile=workspace/app/Dockerfile \
+                      --context=/workspace/app \
+                      --dockerfile=/workspace/app/Dockerfile \
                       --destination=${IMAGE_NAME}:${IMAGE_TAG} \
-                      --destination=${IMAGE_NAME}:latest \
-                      --verbosity=info
+                      --destination=${IMAGE_NAME}:latest
                     """
                 }
             }
