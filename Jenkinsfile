@@ -60,7 +60,7 @@ spec:
 
         stage('Set Docker Auth') {
             steps {
-                container('kaniko') {  // <-- run inside Kaniko container
+                container('kaniko') {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', 
                                                     usernameVariable: 'DOCKER_USER', 
                                                     passwordVariable: 'DOCKER_PASS')]) {
