@@ -199,4 +199,4 @@ Once deployed, access the application via the LoadBalancer URL (check `kubectl g
 Example usage with curl:
 ```bash
 curl -X POST http://<loadbalancer-url>/shorten -H "Content-Type: application/json" -d '{"url": "https://www.google.com"}'
-```
+```# Pipeline test Fri Nov 21 04:27:02 EET 2025
