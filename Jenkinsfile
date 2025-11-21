@@ -1,7 +1,7 @@
 pipeline {
     agent {
         kubernetes {
-            yaml '''
+            yaml """
 apiVersion: v1
 kind: Pod
 metadata:
@@ -14,15 +14,21 @@ spec:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:v1.23.0-debug
     imagePullPolicy: Always
-    tty: true
     command:
-    - sh
-    args:
-    - -c
-    - "sleep 999999"
+    - cat
+    tty: true
     volumeMounts:
     - name: docker-config
       mountPath: /kaniko/.docker
+  - name: jnlp
+    image: jenkins/inbound-agent:3345.v03dee9b_f88fc-1
+    env:
+    - name: JENKINS_AGENT_WORKDIR
+      value: /home/jenkins/agent
+    volumeMounts:
+    - name: workspace-volume
+      mountPath: /home/jenkins/agent
+      readOnly: false
   volumes:
   - name: docker-config
     secret:
@@ -30,7 +36,9 @@ spec:
       items:
       - key: config.json
         path: config.json
-'''
+  - emptyDir: {}
+    name: workspace-volume
+"""
         }
     }
 
@@ -71,7 +79,7 @@ spec:
                 container('kaniko') {
                     script {
                         sh """
-                            echo "=== Starting Kaniko Build ==="
+                            echo "=== Starting Kaniko Build & Push ==="
                             /kaniko/executor \
                               --context=dir://${env.WORKSPACE}/app \
                               --dockerfile=${env.WORKSPACE}/app/Dockerfile \
@@ -89,7 +97,7 @@ spec:
 
         stage('Success') {
             steps {
-                echo "Image pushed: ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+                echo "Image pushed successfully: ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
                 echo "Latest tag updated."
             }
         }
