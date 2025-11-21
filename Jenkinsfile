@@ -59,25 +59,28 @@ spec:
         }
 
         stage('Set Docker Auth') {
-            container('kaniko') {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                    mkdir -p /kaniko/.docker
-                    cat <<EOF > /kaniko/.docker/config.json
-                    {
-                    "auths": {
-                        "https://index.docker.io/v1/": {
-                        "username": "$DOCKER_USER",
-                        "password": "$DOCKER_PASS",
-                        "auth": "$(echo -n $DOCKER_USER:$DOCKER_PASS | base64)"
+            steps {
+                container('kaniko') {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                        mkdir -p /kaniko/.docker
+                        cat <<EOF > /kaniko/.docker/config.json
+                        {
+                        "auths": {
+                            "https://index.docker.io/v1/": {
+                            "username": "$DOCKER_USER",
+                            "password": "$DOCKER_PASS",
+                            "auth": "$(echo -n $DOCKER_USER:$DOCKER_PASS | base64)"
+                            }
                         }
+                        }
+                        EOF
+                        '''
                     }
-                    }
-                    EOF
-                    '''
                 }
             }
         }
+
 
 
 
