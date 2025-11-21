@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent none
 
     environment {
         IMAGE_NAME = "ibrahimmintal/shorten-url"
@@ -10,7 +10,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             agent any
             steps {
@@ -54,10 +53,10 @@ spec:
             steps {
                 container('kaniko') {
                     sh """
-                    /kaniko/executor \
-                      --context dir:///workspace/app \
-                      --dockerfile Dockerfile \
-                      --destination=${IMAGE_NAME}:${IMAGE_TAG} \
+                    /kaniko/executor \\
+                      --context dir:///workspace/app \\
+                      --dockerfile Dockerfile \\
+                      --destination=${IMAGE_NAME}:${IMAGE_TAG} \\
                       --destination=${IMAGE_NAME}:latest
                     """
                 }
