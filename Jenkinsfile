@@ -36,7 +36,7 @@ kind: Pod
 spec:
   containers:
     - name: kaniko
-      image: gcr.io/kaniko-project/executor:latest
+      image: gcr.io/kaniko-project/executor:debug
       command: ["/busybox/sh", "-c"]
       args: ["cat"]      # keep container alive
       tty: true
