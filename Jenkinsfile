@@ -4,7 +4,7 @@ pipeline {
   environment {
     DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
     IMAGE_NAME = "shorten-url"
-    IMAGE_TAG = env.BUILD_NUMBER
+    IMAGE_TAG = "${BUILD_NUMBER}"
 
 
   }
