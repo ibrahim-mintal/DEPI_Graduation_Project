@@ -6,7 +6,10 @@ pipeline {
     IMAGE_NAME = "shorten-url"
     IMAGE_TAG = "build-${env.BUILD_NUMBER}"
   }
-
+  triggers {
+    // Trigger pipeline on GitHub push
+    githubPush()
+  }
   stages {
     stage('Checkout') {
       steps {
