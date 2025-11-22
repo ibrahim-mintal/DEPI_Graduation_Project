@@ -40,10 +40,10 @@ spec:
         container('kaniko') {
           sh """
             /kaniko/executor \
-              --context=dir:///home/jenkins/agent/workspace/Graduation_Project/app \
-              --dockerfile=/home/jenkins/agent/workspace/Graduation_Project/app/Dockerfile \
-              --destination=$DOCKERHUB_CREDENTIALS_USR/$IMAGE_NAME:$IMAGE_TAG \
-              --destination=$DOCKERHUB_CREDENTIALS_USR/$IMAGE_NAME:latest \
+              --context=/home/jenkins/agent/workspace/\$JOB_NAME/app \
+              --dockerfile=/home/jenkins/agent/workspace/\$JOB_NAME/app/Dockerfile \
+              --destination=\$DOCKERHUB_CREDENTIALS_USR/\$IMAGE_NAME:\$IMAGE_TAG \
+              --destination=\$DOCKERHUB_CREDENTIALS_USR/\$IMAGE_NAME:latest \
               --cache=true
           """
         }
@@ -53,7 +53,7 @@ spec:
     stage('Deploy to EKS') {
       steps {
         sh """
-          kubectl set image deployment/app-deployment app-container=$DOCKERHUB_CREDENTIALS_USR/$IMAGE_NAME:$IMAGE_TAG -n app-ns
+          kubectl set image deployment/app-deployment app-container=\$DOCKERHUB_CREDENTIALS_USR/\$IMAGE_NAME:\$IMAGE_TAG -n app-ns
           kubectl rollout restart deployment/app-deployment -n app-ns
           kubectl rollout status deployment/app-deployment -n app-ns
         """
