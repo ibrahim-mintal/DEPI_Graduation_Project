@@ -522,7 +522,7 @@
                     }
                     const html = urls.map(u => `
                         <div class="url-item">
-                            <div class="short-url">${u.short_url}</div>
+                            <div class="short-url"><a href="${u.short_url}" target="_blank">${u.short_url}</a></div>
                             <div class="long-url">${u.long_url}</div>
                             <div class="created-at">Created: ${new Date(u.created_at).toLocaleString()}</div>
                         </div>
