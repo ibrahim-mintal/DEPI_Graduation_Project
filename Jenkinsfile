@@ -28,22 +28,29 @@ spec:
     IMAGE_TAG = "build-${env.BUILD_NUMBER}"
   }
 
+  triggers {
+    githubPush()
+  }
+
   stages {
+
     stage('Checkout') {
       steps {
         checkout scm
       }
     }
 
-    stage('Build & Push Image') {
+    stage('Build & Push Docker Image') {
       steps {
         container('kaniko') {
           sh """
-            /kaniko/executor \
-              --context=/home/jenkins/agent/workspace/\$JOB_NAME/app \
-              --dockerfile=/home/jenkins/agent/workspace/\$JOB_NAME/app/Dockerfile \
-              --destination=\$DOCKERHUB_CREDENTIALS_USR/\$IMAGE_NAME:\$IMAGE_TAG \
-              --destination=\$DOCKERHUB_CREDENTIALS_USR/\$IMAGE_NAME:latest \
+            echo "🔹 Building image $IMAGE_NAME:$IMAGE_TAG"
+
+            /kaniko/executor \\
+              --dockerfile=\$WORKSPACE/app/Dockerfile \\
+              --context=\$WORKSPACE/app \\
+              --destination=\$DOCKERHUB_CREDENTIALS_USR/\$IMAGE_NAME:\$IMAGE_TAG \\
+              --destination=\$DOCKERHUB_CREDENTIALS_USR/\$IMAGE_NAME:latest \\
               --cache=true
           """
         }
@@ -53,11 +60,13 @@ spec:
     stage('Deploy to EKS') {
       steps {
         sh """
+          echo "🔹 Updating deployment in EKS"
           kubectl set image deployment/app-deployment app-container=\$DOCKERHUB_CREDENTIALS_USR/\$IMAGE_NAME:\$IMAGE_TAG -n app-ns
           kubectl rollout restart deployment/app-deployment -n app-ns
           kubectl rollout status deployment/app-deployment -n app-ns
         """
       }
     }
+
   }
 }
