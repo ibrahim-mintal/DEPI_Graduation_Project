@@ -1,5 +1,0 @@
-1. 
-aws eks --region us-west-2 update-kubeconfig --name ci-cd-eks
-
-2. 
-

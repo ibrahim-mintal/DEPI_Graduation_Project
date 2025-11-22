@@ -31,17 +31,20 @@ Key features:
 - Containerized with Docker
 - Scalable deployment on AWS EKS
 - CI/CD with Jenkins
-- Persistent storage for Jenkins
+- Persistent storage for Jenkins using EBS-backed volumes
+- RBAC for secure Jenkins access to manage deployments
 
 ## Architecture Overview
 
 The architecture consists of the following components:
 
 - **AWS Infrastructure**: VPC, subnets, security groups, EKS cluster with dedicated node groups for Jenkins and the application.
-- **Kubernetes**: Namespaces for `app` and `jenkins`, deployments, services, persistent volume claims, and RBAC for Jenkins.
+- **Kubernetes**: Namespaces for `app-ns` and `jenkins-ns`, deployments, services, persistent volume claims, storage classes, and RBAC for Jenkins to manage app deployments.
 - **Application**: Flask app running in a Docker container, exposed via a LoadBalancer service.
-- **CI/CD**: Jenkins pipeline that builds Docker images, pushes to ECR, and deploys to EKS.
+- **CI/CD**: Jenkins pipeline that builds Docker images, pushes to DockerHub, and deploys to EKS.
 - **Storage**: EBS-backed persistent volumes for Jenkins home directory.
+
+![Architecture Diagram](src/Graduation%20Project.png)
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -56,6 +59,13 @@ The architecture consists of the following components:
                     │    (Flask App)  │
                     └─────────────────┘
 ```
+
+Detailed Components:
+- **Namespaces**: Separate namespaces for application (`app-ns`) and Jenkins (`jenkins-ns`) for isolation.
+- **Storage**: Custom StorageClass (`jenkins-ebs-sc`) using EBS CSI driver, with PVC (`jenkins-pvc`) for persistent Jenkins data.
+- **RBAC**: ServiceAccount (`jenkins`) in `jenkins-ns`, Role and RoleBinding in `app-ns` allowing Jenkins to manage deployments and pods in the app namespace.
+- **Deployments**: Jenkins deployment with init container for permissions, sidecar Docker-in-Docker; App deployment with Flask container.
+- **Services**: LoadBalancer services for external access to Jenkins UI and the URL shortener app.
 
 ## Prerequisites
 
@@ -125,46 +135,57 @@ Before setting up the project, ensure you have the following:
 
 ### 3. Deploy Kubernetes Manifests
 
+Deploy the manifests in the following order to ensure dependencies are met:
+
 1. **Apply Namespaces**:
    ```bash
-   kubectl apply -f k8s/app_ns.yaml
-   kubectl apply -f k8s/jenkins_ns.yaml
+   kubectl apply -f k8s/app-namespace.yaml
+   kubectl apply -f k8s/jenkins-namespace.yaml
    ```
 
-2. **Deploy RBAC for Jenkins**:
+2. **Apply Storage Classes**:
    ```bash
-   kubectl apply -f k8s/rbac.yaml
+   kubectl apply -f k8s/storageclass-ebs.yaml
    ```
 
-3. **Create Persistent Volume Claim for Jenkins**:
+3. **Apply RBAC (Service Account, Role, Binding)**:
    ```bash
-   kubectl apply -f k8s/pvc.yaml
+   kubectl apply -f k8s/jenkins-sa.yaml
+   kubectl apply -f k8s/jenkins-rbac-role.yaml
+   kubectl apply -f k8s/jenkins-rbac-binding.yaml
    ```
 
-4. **Deploy Jenkins**:
+4. **Apply Persistent Volume Claims**:
    ```bash
-   kubectl apply -f k8s/jenkins_deployment.yaml
-   kubectl apply -f k8s/jenkins_service.yaml
+   kubectl apply -f k8s/jenkins-pvc.yaml
    ```
 
-5. **Deploy the Application**:
+
+
+5. **Deploy Applications**:
    ```bash
-   kubectl apply -f k8s/app_deployment.yaml
-   kubectl apply -f k8s/app_service.yaml
+   kubectl apply -f k8s/jenkins-deployment.yaml
+   kubectl apply -f k8s/app-deployment.yaml
    ```
 
-6. **Verify Deployments**:
+6. **Apply Services**:
    ```bash
-   kubectl get pods -n app
-   kubectl get pods -n jenkins
-   kubectl get services -n jenkins
-   kubectl get services -n app
+   kubectl apply -f k8s/jenkins-service.yaml
+   kubectl apply -f k8s/app-service.yaml
    ```
 
-7. **Get Jenkins Admin Password** (if needed):
+7. **Verify Deployments**:
+   ```bash
+   kubectl get pods -n app-ns
+   kubectl get pods -n jenkins-ns
+   kubectl get services -n jenkins-ns
+   kubectl get services -n app-ns
+   ```
+
+8. **Get Jenkins Admin Password** (if needed):
    Run the `jenkins-password.sh` script or manually retrieve from the pod:
    ```bash
-   kubectl exec -n jenkins -it $(kubectl get pods -n jenkins -l app=jenkins -o jsonpath='{.items[0].metadata.name}') -- cat /var/jenkins_home/secrets/initialAdminPassword
+   kubectl exec -n jenkins-ns -it $(kubectl get pods -n jenkins-ns -l app=jenkins-pod -o jsonpath='{.items[0].metadata.name}') -- cat /var/jenkins_home/secrets/initialAdminPassword
    ```
 
 ## Jenkins Pipeline Configuration
@@ -178,14 +199,14 @@ The Jenkins pipeline is defined in `Jenkinsfile` and includes the following stag
 
 To set up the pipeline:
 
-1. Access Jenkins UI (via LoadBalancer service).
+1. Access Jenkins UI (via LoadBalancer service in `jenkins-ns`).
 2. Create a new pipeline job.
 3. Configure it to use the `Jenkinsfile` from the repository.
-4. Ensure AWS credentials are configured in Jenkins for ECR and EKS access.
+4. Ensure AWS credentials are configured in Jenkins for EKS access.
 
 ## Usage
 
-Once deployed, access the application via the LoadBalancer URL (check `kubectl get services -n app`).
+Once deployed, access the application via the LoadBalancer URL (check `kubectl get services -n app-ns`).
 
 ### API Endpoints
 
@@ -199,4 +220,4 @@ Once deployed, access the application via the LoadBalancer URL (check `kubectl g
 Example usage with curl:
 ```bash
 curl -X POST http://<loadbalancer-url>/shorten -H "Content-Type: application/json" -d '{"url": "https://www.google.com"}'
-```# Pipeline test Fri Nov 21 04:27:02 EET 2025
+```
