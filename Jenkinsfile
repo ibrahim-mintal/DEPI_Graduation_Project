@@ -10,8 +10,7 @@ spec:
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:v1.23.0
-    command:
-    - tty: true
+    tty: true
     volumeMounts:
     - name: kaniko-secret
       mountPath: /kaniko/.docker/
