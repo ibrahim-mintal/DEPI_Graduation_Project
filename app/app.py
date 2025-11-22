@@ -99,12 +99,12 @@ def shorten_url():
 
         print(f"✅ Shortened URL: {long_url} -> {short_code}")
 
-        # base URL for Kubernetes / Docker
-        base_url = os.getenv("BASE_URL", "http://localhost:5000/")
+        # Use the current request's host URL to build the short URL dynamically
+        base_url = request.host_url
 
         response = {
             "short_code": short_code,
-            "short_url": f"{base_url}/{short_code}",
+            "short_url": f"{base_url}{short_code}",
             "long_url": long_url
         }
 
