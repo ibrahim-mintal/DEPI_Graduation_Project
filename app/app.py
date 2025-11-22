@@ -170,7 +170,7 @@ def list_urls():
                 "short_code": r["short_code"],
                 "long_url": r["long_url"],
                 "created_at": r["created_at"],
-                "short_url": f"{base_url}/{r['short_code']}"
+                "short_url": f"{base_url}{r['short_code']}"
             })
 
         return jsonify({"recent_urls": urls})
