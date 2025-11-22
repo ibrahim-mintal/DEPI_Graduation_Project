@@ -162,7 +162,7 @@ def list_urls():
         rows = cursor.fetchall()
         conn.close()
 
-        base_url = os.getenv("BASE_URL", "http://a864860df0876483db5c02aac8f6248e-1065857936.us-west-2.elb.amazonaws.com/")
+        base_url = request.host_url
 
         urls = []
         for r in rows:
