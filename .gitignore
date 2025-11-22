@@ -8,6 +8,7 @@ steps.txt
 jenkins-password.txt
 jenkins-ca.crt
 jenkins-sa-token.txt
+.k8s/
 
 # Crash logs
 crash.log
