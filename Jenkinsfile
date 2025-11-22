@@ -16,7 +16,20 @@ pipeline {
         checkout scm
       }
     }
-
+    stage('Build & Push Image') {
+        steps {
+            container('kaniko') {
+            sh """
+                /kaniko/executor \
+                --context=dir:///home/jenkins/agent/workspace/Graduation_Project/app \
+                --dockerfile=/home/jenkins/agent/workspace/Graduation_Project/app/Dockerfile \
+                --destination=$DOCKERHUB_CREDENTIALS_USR/$IMAGE_NAME:$IMAGE_TAG \
+                --destination=$DOCKERHUB_CREDENTIALS_USR/$IMAGE_NAME:latest \
+                --cache=true
+            """
+            }
+        }
+    }
     stage('Build Docker Image') {
       steps {
         sh "docker build -t $IMAGE_NAME:$IMAGE_TAG ."
